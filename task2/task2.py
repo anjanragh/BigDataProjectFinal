@@ -705,7 +705,7 @@ mapping = {
     "check23":"person_name"
 }
     
-def find_type(df, col):
+def find_type(df, col, name):
     df = preprocess(df)
     df = df.withColumn("check1", check_website(F.col(col)))
     df = df.withColumn("check2", check_borough(F.col(col)))
@@ -740,7 +740,7 @@ def find_type(df, col):
     countr.sort()
 #     print("This is counter:",countr)
     jsonval =  {
-        "column_name": col,
+        "column_name": name+"_"+col,
         "semantic_types": []
     }
     for item in countr:
@@ -804,7 +804,7 @@ data = data.split(",")
 passVal = []
 for row in data:
     l = row.split(".")
-    passVal.append([l[0][2:]+".tsv.gz", l[1]])
+    passVal.append([l[0][2:], l[1]])
 
 def process_string(string):
     for ch in [" " , "." , "," , "(" , ")" , "/" , "*" , "–" , "’" , "'" , "#"]:
@@ -812,8 +812,8 @@ def process_string(string):
     return string
 
 jsontemp = {"predicted_types":[]}
-for item in passVal:
-    filename = "/user/hm74/NYCOpenData/"+item[0]
+for item in passVal[200:]:
+    filename = "/user/hm74/NYCOpenData/"+item[0]+".tsv.gz"
     tempdf = spark.read.option("sep","\t").option("header", "true").csv(filename)
     #print(tempdf.columns[3])
     tempdf = tempdf.toDF(*(process_string(c) for c in tempdf.columns))
@@ -823,15 +823,15 @@ for item in passVal:
          continue
     #print(tempdf.columns[3])
     ct = tempdf.count()
-    if ct <= 800000000:
+    if ct <= 80000:
         #continue
         print("File being processed : ",filename)
-        jsontemp["predicted_types"].append(find_type(tempdf, item[1]))
+        jsontemp["predicted_types"].append(find_type(tempdf, item[1], item[0]))
         print(jsontemp)
     else:
         print("File not processed : ",filename,ct)
     #jsonfile = "./task2json/"+item[0]+".json"
-with open("task2.json", 'w+', encoding='utf-8') as f:
+with open("task2_temp5.json", 'w+', encoding='utf-8') as f:
     json.dump(jsontemp, f, ensure_ascii=False, indent=4)
         #print("The predicted type for ",item[1],"is",find_type(tempdf, item[1]))
     #print("File is : ",item[0], item[1])
